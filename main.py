@@ -90,9 +90,13 @@ def disclosure_text(affiliate_type: str) -> str:
         return "이 콘텐츠는 브랜드로부터 제품 또는 광고비를 제공받아 제작되었습니다."
     return "이 콘텐츠에는 광고/제휴/판매 목적의 정보가 포함될 수 있습니다."
 
-@app.get("/health", dependencies=[Depends(verify_api_key)])
+@app.get("/health", operation_id="healthCheck")
 def health():
-    return {"status": "ok", "service": "ai-product-shorts-actions-auth"}
+    return {
+        "ok": True,
+        "status": "healthy",
+        "service": "ai-product-shorts-actions"
+    }
 
 @app.post("/product/analyze-url", response_model=ProductAnalysis, dependencies=[Depends(verify_api_key)])
 def analyze_product_url(req: AnalyzeUrlRequest):
