@@ -14,16 +14,14 @@ import uvicorn
 
 app = FastAPI(
     title="AI Product Shorts Automation API",
-    version="1.1.0",
-    description="GPT Actions API with API key authentication and MP4 draft rendering."
+    version="1.2.0",
+    description="GPT Actions API with API key authentication, debug endpoints, and MP4 draft rendering."
 )
 
-# 생성된 영상 저장 폴더
 GENERATED_DIR = Path("generated")
 VIDEO_DIR = GENERATED_DIR / "videos"
 VIDEO_DIR.mkdir(parents=True, exist_ok=True)
 
-# /generated/videos/... 로 MP4 접근 가능하게 설정
 app.mount("/generated", StaticFiles(directory=str(GENERATED_DIR)), name="generated")
 
 
@@ -186,15 +184,15 @@ def draw_centered_lines(
     font,
     y: int,
     fill: str,
-    max_width: int,
-    line_gap: int = 16,
+    frame_width: int,
+    line_gap: int = 12,
 ):
     for line in lines:
         bbox = draw.textbbox((0, 0), line, font=font)
         text_width = bbox[2] - bbox[0]
         text_height = bbox[3] - bbox[1]
 
-        x = (1080 - text_width) // 2
+        x = (frame_width - text_width) // 2
         draw.text((x, y), line, font=font, fill=fill)
 
         y += text_height + line_gap
@@ -203,44 +201,40 @@ def draw_centered_lines(
 
 
 def make_frame(title: str, caption: str, index: int, total: int, out_path: Path):
-    width, height = 1080, 1920
+    width, height = 720, 1280
 
     img = Image.new("RGB", (width, height), "#111827")
     draw = ImageDraw.Draw(img)
 
-    # 배경 그라데이션 느낌
     for y in range(height):
         shade = int(17 + (y / height) * 35)
         color = (shade, shade + 8, shade + 22)
         draw.line([(0, y), (width, y)], fill=color)
 
-    title_font = find_font(64)
-    caption_font = find_font(82)
-    small_font = find_font(40)
-    badge_font = find_font(34)
+    title_font = find_font(42)
+    caption_font = find_font(54)
+    small_font = find_font(24)
+    badge_font = find_font(22)
 
-    # 상단 배지
     badge = f"{index}/{total}  SHORTS DRAFT"
-    draw.rounded_rectangle((60, 70, 1020, 150), radius=30, fill="#2563eb")
+    draw.rounded_rectangle((40, 45, 680, 100), radius=22, fill="#2563eb")
 
     badge_bbox = draw.textbbox((0, 0), badge, font=badge_font)
     badge_x = (width - (badge_bbox[2] - badge_bbox[0])) // 2
-    draw.text((badge_x, 92), badge, font=badge_font, fill="white")
+    draw.text((badge_x, 60), badge, font=badge_font, fill="white")
 
-    # 제목
-    title_lines = wrap_text(draw, title, title_font, 900)
-    draw_centered_lines(draw, title_lines[:2], title_font, 250, "white", 900, 18)
+    title_lines = wrap_text(draw, title, title_font, 620)
+    draw_centered_lines(draw, title_lines[:2], title_font, 160, "white", width, 14)
 
-    # 중앙 자막 박스
-    box_top = 680
-    box_bottom = 1260
+    box_top = 430
+    box_bottom = 820
 
     overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     overlay_draw = ImageDraw.Draw(overlay)
 
     overlay_draw.rounded_rectangle(
-        (70, box_top, 1010, box_bottom),
-        radius=50,
+        (45, box_top, 675, box_bottom),
+        radius=38,
         fill=(0, 0, 0, 145),
         outline=(255, 255, 255, 80),
         width=3,
@@ -249,8 +243,8 @@ def make_frame(title: str, caption: str, index: int, total: int, out_path: Path)
     img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
     draw = ImageDraw.Draw(img)
 
-    caption_lines = wrap_text(draw, caption, caption_font, 850)
-    line_height = 105
+    caption_lines = wrap_text(draw, caption, caption_font, 590)
+    line_height = 70
     total_text_height = min(len(caption_lines), 5) * line_height
     start_y = box_top + ((box_bottom - box_top - total_text_height) // 2)
 
@@ -260,21 +254,20 @@ def make_frame(title: str, caption: str, index: int, total: int, out_path: Path)
         caption_font,
         start_y,
         "white",
-        850,
-        22,
+        width,
+        16,
     )
 
-    # 하단 문구
     footer_1 = "제품 정보는 고정댓글 또는 프로필 링크에서 확인하세요"
-    footer_2 = "쿠팡 파트너스 활동의 일환으로 수수료를 제공받을 수 있습니다"
+    footer_2 = "쿠팡 파트너스 활동으로 수수료를 제공받을 수 있습니다"
 
-    footer_lines_1 = wrap_text(draw, footer_1, small_font, 900)
-    footer_lines_2 = wrap_text(draw, footer_2, small_font, 900)
+    footer_lines_1 = wrap_text(draw, footer_1, small_font, 620)
+    footer_lines_2 = wrap_text(draw, footer_2, small_font, 620)
 
-    y = 1520
-    y = draw_centered_lines(draw, footer_lines_1, small_font, y, "#facc15", 900, 14)
-    y += 30
-    draw_centered_lines(draw, footer_lines_2, small_font, y, "#d1d5db", 900, 14)
+    y = 1010
+    y = draw_centered_lines(draw, footer_lines_1, small_font, y, "#facc15", width, 10)
+    y += 20
+    draw_centered_lines(draw, footer_lines_2, small_font, y, "#d1d5db", width, 10)
 
     img.save(out_path, "PNG")
 
@@ -315,7 +308,8 @@ def create_mp4_from_frames(frames: List[Path], output_path: Path, duration: int)
     if not frames:
         raise ValueError("No frames to render")
 
-    if shutil.which("ffmpeg") is None:
+    ffmpeg_path = shutil.which("ffmpeg")
+    if ffmpeg_path is None:
         raise RuntimeError("ffmpeg is not installed or not available in PATH")
 
     per_slide = max(1.5, duration / len(frames))
@@ -326,11 +320,10 @@ def create_mp4_from_frames(frames: List[Path], output_path: Path, duration: int)
             f.write(f"file '{frame.resolve().as_posix()}'\n")
             f.write(f"duration {per_slide}\n")
 
-        # concat demuxer는 마지막 프레임 반복이 필요함
         f.write(f"file '{frames[-1].resolve().as_posix()}'\n")
 
     cmd = [
-        "ffmpeg",
+        ffmpeg_path,
         "-y",
         "-f",
         "concat",
@@ -339,7 +332,7 @@ def create_mp4_from_frames(frames: List[Path], output_path: Path, duration: int)
         "-i",
         str(concat_file),
         "-vf",
-        "fps=30,format=yuv420p",
+        "fps=24,format=yuv420p",
         "-movflags",
         "+faststart",
         str(output_path),
@@ -350,6 +343,7 @@ def create_mp4_from_frames(frames: List[Path], output_path: Path, duration: int)
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
+        timeout=60,
     )
 
     if completed.returncode != 0:
@@ -363,6 +357,69 @@ def health():
         "ok": True,
         "status": "healthy",
         "service": "ai-product-shorts-actions"
+    }
+
+
+@app.get("/debug/ffmpeg", dependencies=[Depends(verify_api_key)])
+def debug_ffmpeg():
+    ffmpeg_path = shutil.which("ffmpeg")
+
+    if not ffmpeg_path:
+        return {
+            "ok": False,
+            "message": "ffmpeg를 찾을 수 없습니다.",
+            "ffmpeg_path": None
+        }
+
+    try:
+        completed = subprocess.run(
+            [ffmpeg_path, "-version"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=10
+        )
+
+        return {
+            "ok": completed.returncode == 0,
+            "ffmpeg_path": ffmpeg_path,
+            "version": completed.stdout.splitlines()[0] if completed.stdout else None,
+            "stderr": completed.stderr[:500]
+        }
+
+    except Exception as e:
+        return {
+            "ok": False,
+            "ffmpeg_path": ffmpeg_path,
+            "message": str(e)
+        }
+
+
+@app.get("/debug/render-ready", dependencies=[Depends(verify_api_key)])
+def debug_render_ready():
+    return {
+        "ok": True,
+        "generated_dir_exists": GENERATED_DIR.exists(),
+        "video_dir_exists": VIDEO_DIR.exists(),
+        "ffmpeg_path": shutil.which("ffmpeg"),
+        "message": "renderDraft 준비 상태 확인 완료"
+    }
+
+
+@app.post("/debug/echo-render", dependencies=[Depends(verify_api_key)])
+def debug_echo_render(req: RenderDraftRequest):
+    return {
+        "ok": True,
+        "message": "renderDraft 입력값 수신 성공",
+        "received": {
+            "title": req.title,
+            "script": req.script,
+            "captions": req.captions,
+            "product_images": req.product_images,
+            "aspect_ratio": req.aspect_ratio,
+            "duration": req.duration,
+            "voice": req.voice
+        }
     }
 
 
