@@ -1,0 +1,176 @@
+openapi: 3.1.0
+info:
+  title: AI Product Shorts Automation API
+  version: 1.0.0
+servers:
+  - url: https://YOUR-RENDER-APP.onrender.com
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Check API health
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+  /product/analyze-url:
+    post:
+      operationId: analyzeProductUrl
+      summary: Analyze a product URL and return starter product data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+              properties:
+                url:
+                  type: string
+                source:
+                  type: string
+                  enum: [coupang, naver, smartstore, general]
+      responses:
+        "200":
+          description: Product analysis result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  product_name:
+                    type: string
+                  category:
+                    type: string
+                  price:
+                    type: integer
+                    nullable: true
+                  target_customer:
+                    type: array
+                    items:
+                      type: string
+                  selling_points:
+                    type: array
+                    items:
+                      type: string
+                  risk_level:
+                    type: string
+                    enum: [low, medium, high]
+                  risk_reasons:
+                    type: array
+                    items:
+                      type: string
+                  shorts_score:
+                    type: integer
+                  notes:
+                    type: array
+                    items:
+                      type: string
+  /shorts/generate-package:
+    post:
+      operationId: generateShortsPackage
+      summary: Generate shorts script, captions, titles, description, pinned comment, and hashtags
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_name
+              properties:
+                product_name:
+                  type: string
+                category:
+                  type: string
+                selling_points:
+                  type: array
+                  items:
+                    type: string
+                affiliate_type:
+                  type: string
+                  enum: [coupang_partners, general_affiliate, direct_sale, sponsored, unknown]
+                risk_level:
+                  type: string
+                  enum: [low, medium, high]
+      responses:
+        "200":
+          description: Shorts package
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hook_lines:
+                    type: array
+                    items:
+                      type: string
+                  script_15s:
+                    type: string
+                  script_30s:
+                    type: string
+                  scene_plan:
+                    type: array
+                    items:
+                      type: string
+                  captions:
+                    type: array
+                    items:
+                      type: string
+                  youtube_titles:
+                    type: array
+                    items:
+                      type: string
+                  tiktok_titles:
+                    type: array
+                    items:
+                      type: string
+                  description:
+                    type: string
+                  pinned_comment:
+                    type: string
+                  hashtags:
+                    type: array
+                    items:
+                      type: string
+                  upload_checklist:
+                    type: array
+                    items:
+                      type: string
+  /video/render-draft:
+    post:
+      operationId: renderVideoDraft
+      summary: Create a draft video render job placeholder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Draft render result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id:
+                    type: string
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  preview_url:
+                    type: string
+                    nullable: true
