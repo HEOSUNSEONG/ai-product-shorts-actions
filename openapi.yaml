@@ -156,7 +156,37 @@ paths:
           application/json:
             schema:
               type: object
-              additionalProperties: true
+              required:
+                - title
+                - script
+              properties:
+                title:
+                  type: string
+                  description: 영상 제목
+                script:
+                  type: string
+                  description: 영상에 사용할 대본
+                captions:
+                  type: array
+                  description: 영상 자막 목록
+                  items:
+                    type: string
+                product_images:
+                  type: array
+                  description: 상품 이미지 URL 목록
+                  items:
+                    type: string
+                aspect_ratio:
+                  type: string
+                  enum:
+                    - "9:16"
+                  description: 숏츠 영상 비율
+                duration:
+                  type: integer
+                  description: 영상 길이 초 단위
+                voice:
+                  type: string
+                  description: 사용할 AI 음성 스타일
       responses:
         "200":
           description: Draft render result
