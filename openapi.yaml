@@ -3,7 +3,7 @@ info:
   title: AI Product Shorts Automation API
   version: 1.0.0
 servers:
-  - url: https://YOUR-RENDER-APP.onrender.com
+  - url: https://ai-product-shorts-actions.onrender.com
 paths:
   /health:
     get:
