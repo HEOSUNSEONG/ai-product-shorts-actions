@@ -1,9 +1,17 @@
 openapi: 3.1.0
 info:
   title: AI Product Shorts Automation API
-  version: 1.0.0
+  version: 1.1.0
 servers:
   - url: https://ai-product-shorts-actions.onrender.com
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+security:
+  - ApiKeyAuth: []
 paths:
   /health:
     get:
@@ -21,6 +29,7 @@ paths:
                     type: string
                   service:
                     type: string
+
   /product/analyze-url:
     post:
       operationId: analyzeProductUrl
@@ -38,7 +47,11 @@ paths:
                   type: string
                 source:
                   type: string
-                  enum: [coupang, naver, smartstore, general]
+                  enum:
+                    - coupang
+                    - naver
+                    - smartstore
+                    - general
       responses:
         "200":
           description: Product analysis result
@@ -53,7 +66,6 @@ paths:
                     type: string
                   price:
                     type: integer
-                    nullable: true
                   target_customer:
                     type: array
                     items:
@@ -64,7 +76,10 @@ paths:
                       type: string
                   risk_level:
                     type: string
-                    enum: [low, medium, high]
+                    enum:
+                      - low
+                      - medium
+                      - high
                   risk_reasons:
                     type: array
                     items:
@@ -75,6 +90,7 @@ paths:
                     type: array
                     items:
                       type: string
+
   /shorts/generate-package:
     post:
       operationId: generateShortsPackage
@@ -98,10 +114,18 @@ paths:
                     type: string
                 affiliate_type:
                   type: string
-                  enum: [coupang_partners, general_affiliate, direct_sale, sponsored, unknown]
+                  enum:
+                    - coupang_partners
+                    - general_affiliate
+                    - direct_sale
+                    - sponsored
+                    - unknown
                 risk_level:
                   type: string
-                  enum: [low, medium, high]
+                  enum:
+                    - low
+                    - medium
+                    - high
       responses:
         "200":
           description: Shorts package
@@ -146,6 +170,7 @@ paths:
                     type: array
                     items:
                       type: string
+
   /video/render-draft:
     post:
       operationId: renderVideoDraft
@@ -177,8 +202,8 @@ paths:
                   items:
                     type: string
                 aspect_ratio:
-                type: string
-                  description: 숏츠 영상 비율. 예: 9:16
+                  type: string
+                  description: 숏츠 영상 비율. 예시 9대16
                 duration:
                   type: integer
                   description: 영상 길이 초 단위
@@ -201,4 +226,4 @@ paths:
                     type: string
                   preview_url:
                     type: string
-                    nullable: true
+
