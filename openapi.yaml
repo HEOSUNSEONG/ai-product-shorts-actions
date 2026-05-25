@@ -177,10 +177,8 @@ paths:
                   items:
                     type: string
                 aspect_ratio:
-                  type: string
-                  enum:
-                    - "9:16"
-                  description: 숏츠 영상 비율
+                type: string
+                  description: 숏츠 영상 비율. 예: 9:16
                 duration:
                   type: integer
                   description: 영상 길이 초 단위
